@@ -1,25 +1,27 @@
 { pkgs, ... }:
 let
-  pyjwt = with pkgs.python3.pkgs; pkgs.callPackage ./pypi-pkgs/pyjwt {
-    # buildPythonPackage = pkgs.python3.pkgs.buildPythonPackage;
-    # fetchPypi = pkgs.python3.pkgs.fetchPypi;
-    inherit buildPythonPackage fetchPypi cryptography ecdsa pytestrunner pytestcov pytest;
-  };
+  python = let packageOverrides = self: super: { pyjwt = super.pyjwt.overridePythonAttrs(old: rec {
+        version = "2.0.1";
+        src =  super.fetchPypi {
+          pname = "PyJWT";
+          inherit version;
+          sha256 = "a5c70a06e1f33d81ef25eecd50d50bd30e34de1ca8b2b9fa3fe0daaabcf69bf7";
+        };
+      }); }; in pkgs.python3.override {inherit packageOverrides; self = python; };
+in
+let
   social-auth-core = pkgs.callPackage ./pypi-pkgs/social-auth-core {
-    buildPythonPackage = pkgs.python3.pkgs.buildPythonPackage;
-    fetchPypi = pkgs.python3.pkgs.fetchPypi;
-    inherit pyjwt;
+    buildPythonPackage = python.pkgs.buildPythonPackage;
+    fetchPypi = python.pkgs.fetchPypi;
+    pyjwt = python.pkgs.pyjwt;
   };
   social-auth-app-django = pkgs.callPackage ./pypi-pkgs/social-auth-app-django {
-    buildPythonPackage = pkgs.python3.pkgs.buildPythonPackage;
-    fetchPypi = pkgs.python3.pkgs.fetchPypi;
+    buildPythonPackage = python.pkgs.buildPythonPackage;
+    fetchPypi = python.pkgs.fetchPypi;
     inherit social-auth-core;
   };
 in
-let
-  python = let packageOverrides = self: super: { inherit pyjwt; }; in pkgs.python3.override {inherit packageOverrides; self = python; };
-in
-pkgs.python3.withPackages(ps: with ps; [
+python.withPackages(ps: with ps; [
   pip
   setuptools
   django
