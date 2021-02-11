@@ -1,13 +1,18 @@
 { pkgs, ... }:
 let
-  python = let packageOverrides = self: super: { pyjwt = super.pyjwt.overridePythonAttrs(old: rec {
+  python = let packageOverrides = self: super: rec { 
+    pyjwt = super.pyjwt.overridePythonAttrs(old: rec {
         version = "2.0.1";
         src =  super.fetchPypi {
           pname = "PyJWT";
           inherit version;
           sha256 = "a5c70a06e1f33d81ef25eecd50d50bd30e34de1ca8b2b9fa3fe0daaabcf69bf7";
         };
-      }); }; in pkgs.python3.override {inherit packageOverrides; self = python; };
+      }); 
+    oauthlib = super.oauthlib.overridePythonAttrs(old: rec {
+      propagatedBuildInputs = old.propagatedBuildInputs ++ [ pyjwt ];
+    });
+  }; in pkgs.python3.override {inherit packageOverrides; self = python; };
 in
 let
   social-auth-core = pkgs.callPackage ./pypi-pkgs/social-auth-core {
