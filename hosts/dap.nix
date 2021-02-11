@@ -5,7 +5,7 @@ let
   webRoot = "/srv/www";
   maxHttpUploadMB = 200;
   pythonWithPip = pkgs.python3.withPackages(ps: with ps; [ pip setuptools ]);
-  pythonAppEnv = (import ../python.nix) {};
+  pythonAppEnv = pkgs.callPackage ../python.nix {};
 in
 {
   imports = [ "${modulesPath}/virtualisation/openstack-config.nix" ];
@@ -83,4 +83,36 @@ in
   # servers. You should change this only after NixOS release notes say you
   # should.
   system.stateVersion = "20.09"; # Did you read the comment?
+
+
+  systemd.services.updatedap = {
+    wantedBy = [ "multi-user.target" ];
+    script = ''
+      export GIT_SSH_COMMAND='${pkgs.openssh}/bin/ssh -i /root/.ssh/id_rsa_vizzy'
+      if [[ ! -e /home/vizzy/vizzy ]]; then
+        ${pkgs.git}/bin/git clone git@github.com:magao-x/vizzy.git /home/vizzy/vizzy
+      fi
+      cd /home/vizzy/vizzy
+      ${pkgs.git}/bin/git pull
+      chown -R vizzy /home/vizzy
+      mkdir -p /var/lib/vizzy
+      chown -R vizzy /var/lib/vizzy
+    '';
+    serviceConfig = {
+      User = "root";
+      RemainAfterExit = true;
+    };
+  };
+  systemd.services.dap = {
+    after = [ "updatevizzy.service" ];
+    wantedBy = [ "multi-user.target" ];
+    environment = {};
+    script = ''
+    cd /home/vizzy/vizzy
+    ${pythonAppEnv.env}/bin/python -c "import vizzy; vizzy.main(host='127.0.0.1', port=8000)"
+    '';
+    serviceConfig = {
+      User = "vizzy";
+    };
+  };
 }

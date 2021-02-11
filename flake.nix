@@ -5,7 +5,11 @@
     nixosConfigurations = {
         "dap" = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
-          modules = [ ./hosts/dap.nix ];
+          modules = [ 
+            ./configs/enable-flakes.nix  # !!
+            ./configs/users.nix
+            ./hosts/dap.nix
+          ];
       };
     };
   };
